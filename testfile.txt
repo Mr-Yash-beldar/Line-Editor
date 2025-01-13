@@ -1,0 +1,6 @@
+I am Yashodip
+Line 2: I love my studies.
+Yashodip
+Line 3: I am in Chitkara University.
+Line 4: C++ programming is fun.
+Line 5: Practice makes perfect.
