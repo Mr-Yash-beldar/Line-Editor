@@ -1,64 +1,105 @@
 #include <iostream>
 #include <fstream>
-#include <string>
-#include <sys/stat.h>
+#include <sstream>
 #include <cstdlib>
 #include <stack>
+#include <limits>
 
 using namespace std;
 
-enum OperationType { INSERT_LINE, DELETE_LINE, UPDATE_LINE, INSERT_WORD, DELETE_WORD };
+enum OperationType
+{
+    INSERT_LINE,
+    DELETE_LINE,
+    UPDATE_LINE,
+    INSERT_WORD,
+    DELETE_WORD
+};
 
-struct Operation {
+struct Operation
+{
     OperationType type;
     int lineNum;
     string oldData;
     string newData;
     int wordPosition;
 
-    Operation(OperationType t, int l, const string& oldD = "", const string& newD = "", int pos = -1)
+    Operation(OperationType t, int l, const string &oldD = "", const string &newD = "", int pos = -1)
         : type(t), lineNum(l), oldData(oldD), newData(newD), wordPosition(pos) {}
 };
 
-struct Cursor {
+struct Cursor
+{
     int lineNumber;
     int wordPosition;
 
     Cursor(int line = -1, int pos = -1) : lineNumber(line), wordPosition(pos) {}
 };
 
-// Define the structure for each node in the linked list
-struct ListNode {
-    string line;
-    ListNode* next;
-    ListNode(const string& lineData) : line(lineData), next(nullptr) {}
+
+struct WordNode{
+    string word;
+    WordNode *next;
+    WordNode(const string &worddata): word(worddata),next(nullptr){}
 };
 
-// Linked list class to manage lines
-class LineBuffer {
+struct ListNode {
+    WordNode* wordHead;  // Pointer to the head of the word linked list
+    ListNode* next;
+
+    ListNode(const string& lineData) : wordHead(nullptr), next(nullptr) {
+        istringstream iss(lineData);
+        string word;
+        WordNode** current = &wordHead;
+
+        while (iss >> word) {
+            *current = new WordNode(word);
+            current = &((*current)->next);
+        }
+    }
+
+    ~ListNode() {
+        while (wordHead) {
+            WordNode* temp = wordHead;
+            wordHead = wordHead->next;
+            delete temp;
+        }
+    }
+};
+
+
+class LineBuffer
+{
 public:
-    ListNode* head;
+    ListNode *head;
     int lineCount;
 
 public:
     LineBuffer() : head(nullptr), lineCount(0) {}
 
-    ~LineBuffer() {
+    ~LineBuffer()
+    {
         clear();
     }
 
-    void addLine(const string& line) {
-        if (lineCount >= 25) {
+    void addLine(const string &line)
+    {
+        if (lineCount >= 25)
+        {
             cout << "Buffer is full. Cannot add more lines." << endl;
             return;
         }
 
-        ListNode* newNode = new ListNode(line);
-        if (!head) {
+        ListNode *newNode = new ListNode(line);
+        if (!head)
+        {
             head = newNode;
-        } else {
-            ListNode* temp = head;
-            while (temp->next) {
+        }
+        else
+        {
+            ListNode *temp = head;
+            while (temp->next)
+            {
                 temp = temp->next;
             }
             temp->next = newNode;
@@ -66,24 +107,32 @@ public:
         lineCount++;
     }
 
-    void insertLine(int position, const string& line) {
-        if (position < 0 || position > lineCount) {
+    void insertLine(int position, const string &line)
+    {
+        position--;
+        if (position < 0 || position > lineCount)
+        {
             cout << "Invalid position." << endl;
             return;
         }
 
-        if (lineCount >= 25) {
+        if (lineCount >= 25)
+        {
             cout << "Buffer is full. Cannot insert more lines." << endl;
             return;
         }
 
-        ListNode* newNode = new ListNode(line);
-        if (position == 0) {
+        ListNode *newNode = new ListNode(line);
+        if (position == 0)
+        {
             newNode->next = head;
             head = newNode;
-        } else {
-            ListNode* temp = head;
-            for (int i = 1; i < position; ++i) {
+        }
+        else
+        {
+            ListNode *temp = head;
+            for (int i = 1; i < position; ++i)
+            {
                 temp = temp->next;
             }
             newNode->next = temp->next;
@@ -92,64 +141,113 @@ public:
         lineCount++;
     }
 
-    void updateLine(int position, const string& line) {
-        if (position < 0 || position >= lineCount) {
-            cout << "Invalid position." << endl;
-            return;
-        }
-
-        ListNode* temp = head;
-        for (int i = 0; i < position; ++i) {
-            temp = temp->next;
-        }
-        temp->line = line;
+   void updateLine(int position, const string &line) {
+    position--;
+    if (position < 0 || position >= lineCount) {
+        cout << "Invalid position." << endl;
+        return;
     }
 
-    void deleteLine(int position) {
-        if (position < 0 || position >= lineCount) {
+    ListNode *temp = head;
+    for (int i = 0; i < position; ++i) {
+        temp = temp->next;
+    }
+
+    // Delete the existing word list
+    WordNode *current = temp->wordHead;
+    while (current) {
+        WordNode *nextNode = current->next;
+        delete current;
+        current = nextNode;
+    }
+
+    // Create new word list from the provided line
+    istringstream iss(line);
+    string word;
+    WordNode **newCurrent = &temp->wordHead;
+
+    while (iss >> word) {
+        *newCurrent = new WordNode(word);
+        newCurrent = &((*newCurrent)->next);
+    }
+}
+
+
+    void deleteLine(int position)
+    {
+        position--;
+        if (position < 0 || position >= lineCount)
+        {
             cout << "Invalid position." << endl;
             return;
         }
 
-        ListNode* temp = head;
-        if (position == 0) {
+        ListNode *temp = head;
+        if (position == 0)
+        {
             head = head->next;
             delete temp;
-        } else {
-            for (int i = 1; i < position; ++i) {
+        }
+        else
+        {
+            for (int i = 1; i < position; ++i)
+            {
                 temp = temp->next;
             }
-            ListNode* toDelete = temp->next;
+            ListNode *toDelete = temp->next;
             temp->next = toDelete->next;
             delete toDelete;
         }
         lineCount--;
     }
 
-    void printLines() const {
-        ListNode* temp = head;
+    void printLines() const
+    {
+        ListNode *temp = head;
         int lineNum = 1;
-        while (temp) {
-            cout << "[Line No" << lineNum << "]: " << temp->line << endl;
+        while (temp)
+        {
+            string line="";
+            WordNode *wordTemp=temp->wordHead;
+            while(wordTemp){
+                line=line+wordTemp->word;
+                if(wordTemp->next) line+" ";
+                wordTemp=wordTemp->next;
+            }
+            cout << "[Line No" << lineNum << "]: " << line << endl;
             temp = temp->next;
             lineNum++;
         }
     }
-
-    string getLine(int position) const {
-        if (position < 0 || position >= lineCount) {
-            return "";
-        }
-        ListNode* temp = head;
-        for (int i = 0; i < position; ++i) {
-            temp = temp->next;
-        }
-        return temp->line;
+string getLine(int position) const {
+    if (position < 0 || position >= lineCount) {
+        return "";
     }
 
-    void clear() {
-        ListNode* temp;
-        while (head) {
+    ListNode *temp = head;
+    for (int i = 0; i < position; ++i) {
+        temp = temp->next;
+    }
+
+    ostringstream oss;
+    WordNode *wordTemp = temp->wordHead;
+    while (wordTemp) {
+        oss << wordTemp->word;
+        if (wordTemp->next) {
+            oss << " ";  // Add a space between words
+        }
+        wordTemp = wordTemp->next;
+    }
+
+    return oss.str();  // Return the concatenated string
+}
+
+
+    void clear()
+    {
+        ListNode *temp;
+        while (head)
+        {
             temp = head;
             head = head->next;
             delete temp;
@@ -157,16 +255,29 @@ public:
         lineCount = 0;
     }
 
-    void writeBufferToFile(const string& fullPath) const {
+    // string makeString(ListNode )
+    void writeBufferToFile(const string &fullPath) const
+    {
         ofstream file(fullPath, ios::out | ios::trunc);
-        if (!file.is_open()) {
+
+        if (!file.is_open())
+        {
             cerr << "Error: Could not open the file for writing." << endl;
             return;
         }
 
-        ListNode* temp = head;
-        while (temp) {
-            file << temp->line << endl;
+        ListNode *temp = head;
+        while (temp)
+        {
+            WordNode *wordTemp=temp->wordHead;
+            while(wordTemp){
+                file << wordTemp->word;
+                if(wordTemp->next){
+                    file << "";
+                }
+                wordTemp=wordTemp->next;
+            }
+            file << endl;
             temp = temp->next;
         }
 
@@ -175,38 +286,45 @@ public:
     }
 };
 
-// Function to check if a file exists
-bool fileExists(const string& filename) {
-    struct stat buffer;
-    return (stat(filename.c_str(), &buffer) == 0);
+bool fileExists(const string &filename)
+{
+    fstream file(filename);
+    return file.is_open();
 }
 
-// Function to create or open a file
-void createOrOpenFile(const string& fullPath, const string& mode) {
+void createOrOpenFile(const string &fullPath)
+{
+    string mode = fileExists(fullPath) ? "r+" : "w+";
     ios_base::openmode openMode = ios::in | ios::out;
-    if (mode == "w+") {
+    if (mode == "w+")
+    {
         openMode = ios::out | ios::trunc;
     }
 
     fstream file(fullPath, openMode);
-    if (file.is_open()) {
+    if (file.is_open())
+    {
         cout << "File '" << fullPath << "' opened/created successfully." << endl;
         file.close();
-    } else {
+    }
+    else
+    {
         cerr << "Error: Could not open or create file '" << fullPath << "'." << endl;
     }
 }
 
-// Function to read the file line by line and store it in the buffer
-bool readFileToBuffer(const string& fullPath, LineBuffer& buffer) {
+bool readFileToBuffer(const string &fullPath, LineBuffer &buffer)
+{
     ifstream file(fullPath);
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         cerr << "Error: Could not open the file." << endl;
         return false;
     }
 
     string line;
-    while (getline(file, line)) {
+    while (getline(file, line))
+    {
         buffer.addLine(line);
     }
 
@@ -214,60 +332,99 @@ bool readFileToBuffer(const string& fullPath, LineBuffer& buffer) {
     return true;
 }
 
-Cursor searchWord(LineBuffer& buffer, const string& word) {
-    ListNode* temp = buffer.head;
+Cursor searchWord(LineBuffer &buffer, const string &word) {
+    ListNode *temp = buffer.head;
     int lineNum = 0;
-    
+
     while (temp) {
-        size_t pos = temp->line.find(word);
-        if (pos != string::npos) {
-            return Cursor(lineNum, pos);
+        WordNode *wordTemp = temp->wordHead;
+        int wordPos = 0;  
+
+        while (wordTemp) {
+            if (wordTemp->word == word) {
+                return Cursor(lineNum, wordPos);
+            }
+            wordTemp = wordTemp->next;
+            wordPos++;
         }
+
         temp = temp->next;
         lineNum++;
     }
+
     return Cursor(-1, -1);  // Word not found
 }
 
-void insertWordAtCursor(LineBuffer& buffer, const Cursor& cursor, const string& newWord) {
+
+void insertWordAtCursor(LineBuffer &buffer, const Cursor &cursor, const string &newWord) {
     if (cursor.lineNumber == -1) {
         cout << "Invalid cursor position." << endl;
         return;
     }
 
-    ListNode* temp = buffer.head;
+    ListNode *temp = buffer.head;
     for (int i = 0; i < cursor.lineNumber; ++i) {
         temp = temp->next;
     }
 
-    temp->line.insert(cursor.wordPosition, newWord + " ");
+    WordNode *wordTemp = temp->wordHead;
+    WordNode *prev = nullptr;
+    int pos = 0;
+
+    while (wordTemp && pos < cursor.wordPosition) {
+        prev = wordTemp;
+        wordTemp = wordTemp->next;
+        pos++;
+    }
+
+    WordNode *newWordNode = new WordNode(newWord);
+    if (prev) {
+        prev->next = newWordNode;
+        newWordNode->next = wordTemp;
+    } else {
+        newWordNode->next = temp->wordHead;
+        temp->wordHead = newWordNode;
+    }
 }
 
-void replaceWordAtCursor(LineBuffer& buffer, const Cursor& cursor, const string& newWord, const string& oldWord) {
+void replaceWordAtCursor(LineBuffer &buffer, const Cursor &cursor, const string &newWord, const string &oldWord) {
     if (cursor.lineNumber == -1) {
         cout << "Invalid cursor position." << endl;
         return;
     }
 
-    ListNode* temp = buffer.head;
+    ListNode *temp = buffer.head;
     for (int i = 0; i < cursor.lineNumber; ++i) {
         temp = temp->next;
     }
 
-    size_t pos = temp->line.find(oldWord, cursor.wordPosition);
-    if (pos != string::npos) {
-        temp->line.replace(pos, oldWord.length(), newWord);
+    WordNode *wordTemp = temp->wordHead;
+    int pos = 0;
+
+    while (wordTemp && pos < cursor.wordPosition) {
+        if (wordTemp->word == oldWord && pos == cursor.wordPosition) {
+            wordTemp->word = newWord; 
+            return;
+        }
+        wordTemp = wordTemp->next;
+        pos++;
     }
+
+    cout << "word not found at the specified position." << endl;
 }
 
-class UndoRedo {
+
+class UndoRedo
+{
 private:
     stack<Operation> undoStack;
     stack<Operation> redoStack;
 
 public:
-    void performUndo(LineBuffer& buffer) {
-        if (undoStack.empty()) {
+    void performUndo(LineBuffer &buffer)
+    {
+        if (undoStack.empty())
+        {
             cout << "Nothing to undo." << endl;
             return;
         }
@@ -278,8 +435,10 @@ public:
         redoStack.push(op);
     }
 
-    void performRedo(LineBuffer& buffer) {
-        if (redoStack.empty()) {
+    void performRedo(LineBuffer &buffer)
+    {
+        if (redoStack.empty())
+        {
             cout << "Nothing to redo." << endl;
             return;
         }
@@ -290,191 +449,264 @@ public:
         undoStack.push(op);
     }
 
-    void recordOperation(const Operation& op) {
-        if (undoStack.size() >= 3) {
-            undoStack.pop();  // Maintain a limit of 3 operations
+    void recordOperation(const Operation &op)
+    {
+        if (undoStack.size() >= 3)
+        {
+            undoStack.pop();
         }
         undoStack.push(op);
-        // Clear redo stack on new operation
-        while (!redoStack.empty()) {
+
+        while (!redoStack.empty())
+        {
             redoStack.pop();
         }
     }
 
-    void applyOperation(LineBuffer& buffer, const Operation& op) {
-        switch (op.type) {
-            case INSERT_LINE:
-                buffer.insertLine(op.lineNum, op.newData);
-                break;
-            case DELETE_LINE:
-                buffer.deleteLine(op.lineNum);
-                break;
-            case UPDATE_LINE:
-                buffer.updateLine(op.lineNum, op.newData);
-                break;
-            case INSERT_WORD:
-                insertWordAtCursor(buffer, Cursor(op.lineNum, op.wordPosition), op.newData);
-                break;
-            case DELETE_WORD:
-                replaceWordAtCursor(buffer, Cursor(op.lineNum, op.wordPosition), "", op.oldData);
-                break;
+    void applyOperation(LineBuffer &buffer, const Operation &op)
+    {
+        switch (op.type)
+        {
+        case INSERT_LINE:
+            buffer.insertLine(op.lineNum, op.newData);
+            break;
+        case DELETE_LINE:
+            buffer.deleteLine(op.lineNum);
+            break;
+        case UPDATE_LINE:
+            buffer.updateLine(op.lineNum, op.newData);
+            break;
+        case INSERT_WORD:
+            insertWordAtCursor(buffer, Cursor(op.lineNum, op.wordPosition), op.newData);
+            break;
+        case DELETE_WORD:
+            replaceWordAtCursor(buffer, Cursor(op.lineNum, op.wordPosition), "", op.oldData);
+            break;
         }
     }
 
-    void applyInverseOperation(LineBuffer& buffer, const Operation& op) {
-        switch (op.type) {
-            case INSERT_LINE:
-                buffer.deleteLine(op.lineNum);
-                break;
-            case DELETE_LINE:
-                buffer.insertLine(op.lineNum, op.oldData);
-                break;
-            case UPDATE_LINE:
-                buffer.updateLine(op.lineNum, op.oldData);
-                break;
-            case INSERT_WORD:
-                replaceWordAtCursor(buffer, Cursor(op.lineNum, op.wordPosition), "", op.newData);
-                break;
-            case DELETE_WORD:
-                insertWordAtCursor(buffer, Cursor(op.lineNum, op.wordPosition), op.oldData);
-                break;
+    void applyInverseOperation(LineBuffer &buffer, const Operation &op)
+    {
+        switch (op.type)
+        {
+        case INSERT_LINE:
+            buffer.deleteLine(op.lineNum);
+            break;
+        case DELETE_LINE:
+            buffer.insertLine(op.lineNum, op.oldData);
+            break;
+        case UPDATE_LINE:
+            buffer.updateLine(op.lineNum, op.oldData);
+            break;
+        case INSERT_WORD:
+            replaceWordAtCursor(buffer, Cursor(op.lineNum, op.wordPosition), "", op.newData);
+            break;
+        case DELETE_WORD:
+            insertWordAtCursor(buffer, Cursor(op.lineNum, op.wordPosition), op.oldData);
+            break;
         }
     }
 };
 
-void handleOperations(LineBuffer& buffer, const string& fullPath, UndoRedo& undoRedo) {
+void handleOperations(LineBuffer &buffer, const string &fullPath, UndoRedo &undoRedo)
+{
     int choice;
-    while (true) {
+    while (true)
+    {
         cout << "\nChoose an operation:" << endl;
         cout << "1. Insert Line" << endl;
         cout << "2. Update Line" << endl;
         cout << "3. Delete Line" << endl;
         cout << "4. Print Lines" << endl;
         cout << "5. Search Word" << endl;
-        cout << "6. Insert Word at Cursor" << endl;  // New option for inserting word
-        cout << "7. Delete Word at Cursor" << endl;  // New option for deleting word
+        cout << "6. Insert Word at Cursor" << endl;
+        cout << "7. Delete Word at Cursor" << endl;
         cout << "8. Undo" << endl;
         cout << "9. Redo" << endl;
         cout << "10. Save and Exit" << endl;
         cin >> choice;
+        // if choice is not int
+        if (cin.fail())
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid choice. Please try again." << endl;
+            continue;
+        }
+        switch (choice)
+        {
+        case 1:
+        {
+            int position;
+            string line;
+            cout << "Enter position to insert: ";
+            cin >> position;
+            cin.ignore();
+            cout << "Enter line: ";
+            getline(cin, line);
+            buffer.insertLine(position, line);
+            undoRedo.recordOperation(Operation(INSERT_LINE, position, "", line));
+            buffer.writeBufferToFile(fullPath);
+            system("cls");
+            cout << "Line inserted successfully." << endl;
+            break;
+        }
+        case 2:
+        {
+            int position;
+            string line;
+            cout << "Enter position to update: ";
+            cin >> position;
+            cin.ignore();
+            cout << "Enter new line: ";
+            getline(cin, line);
+            string oldLine = buffer.getLine(position);
+            buffer.updateLine(position, line);
+            undoRedo.recordOperation(Operation(UPDATE_LINE, position, oldLine, line));
+            buffer.writeBufferToFile(fullPath);
+            system("cls");
+            cout << "Line updated successfully." << endl;
+            break;
+        }
+        case 3:
+        {
+            int position;
+            cout << "Enter position to delete: ";
+            cin >> position;
+            string oldLine = buffer.getLine(position);
+            buffer.deleteLine(position);
+            undoRedo.recordOperation(Operation(DELETE_LINE, position, oldLine));
+            buffer.writeBufferToFile(fullPath);
+            system("cls");
+            cout << "Line deleted successfully." << endl;
+            break;
+        }
+        case 4:
+            buffer.printLines();
+            break;
+        case 5:
+        {
+            string word;
+            cout << "Enter word to search: ";
+            cin >> word;
+            Cursor cursor = searchWord(buffer, word);
+            system("cls");
+            if (cursor.lineNumber != -1)
+            {
+                cout << "Word found at line " << cursor.lineNumber + 1 << ", position " << cursor.wordPosition << endl;
 
-        switch (choice) {
-            case 1: {
-                int position;
-                string line;
-                cout << "Enter position to insert: ";
-                cin >> position;
-                cin.ignore();
-                cout << "Enter line: ";
-                getline(cin, line);
-                buffer.insertLine(position, line);
-                undoRedo.recordOperation(Operation(INSERT_LINE, position, "", line));
-                break;
-            }
-            case 2: {
-                int position;
-                string line;
-                cout << "Enter position to update: ";
-                cin >> position;
-                cin.ignore();
-                cout << "Enter new line: ";
-                getline(cin, line);
-                string oldLine = buffer.getLine(position);  // Assume getLine() fetches the line at position
-                buffer.updateLine(position, line);
-                undoRedo.recordOperation(Operation(UPDATE_LINE, position, oldLine, line));
-                break;
-            }
-            case 3: {
-                int position;
-                cout << "Enter position to delete: ";
-                cin >> position;
-                string oldLine = buffer.getLine(position);  // Assume getLine() fetches the line at position
-                buffer.deleteLine(position);
-                undoRedo.recordOperation(Operation(DELETE_LINE, position, oldLine));
-                break;
-            }
-            case 4:
-                buffer.printLines();
-                break;
-            case 5: {
-                string word;
-                cout << "Enter word to search: ";
-                cin >> word;
-                Cursor cursor = searchWord(buffer, word);
-                if (cursor.lineNumber != -1) {
-                    cout << "Word found at line " << cursor.lineNumber + 1 << ", position " << cursor.wordPosition << endl;
-                } else {
-                    cout << "Word not found." << endl;
+                //more operations like insert, delete, replace want to make here
+                int choice;
+                cout << "1. Insert word at cursor" << endl;
+                cout << "2. Delete word at cursor" << endl;
+                cout << "3. Replace word at cursor" << endl;
+                cout << "4. Go back" << endl;
+                cin >> choice;
+                switch (choice)
+                {
+                case 1:
+                {
+                    string newWord;
+                    cout << "Enter the word to insert: ";
+                    cin >> newWord;
+                    insertWordAtCursor(buffer, cursor, newWord);
+                    undoRedo.recordOperation(Operation(INSERT_WORD, cursor.lineNumber, "", newWord, cursor.wordPosition));
+                    buffer.writeBufferToFile(fullPath);
+                    system("cls");
+                    break;
                 }
-                break;
+                case 2:
+                {
+                    string oldWord = buffer.getLine(cursor.lineNumber).substr(cursor.wordPosition, word.length());
+                    replaceWordAtCursor(buffer, cursor, "", oldWord);
+                    undoRedo.recordOperation(Operation(DELETE_WORD, cursor.lineNumber, oldWord, "", cursor.wordPosition));
+                    buffer.writeBufferToFile(fullPath);
+                    system("cls");
+                    break;
+                }
+                case 3:
+                {
+                    string newWord;
+                    cout << "Enter the new word: ";
+                    cin >> newWord;
+                    string oldWord = buffer.getLine(cursor.lineNumber).substr(cursor.wordPosition, word.length());
+                    replaceWordAtCursor(buffer, cursor, newWord, oldWord);
+                    undoRedo.recordOperation(Operation(DELETE_WORD, cursor.lineNumber, oldWord, "", cursor.wordPosition));
+                    undoRedo.recordOperation(Operation(INSERT_WORD, cursor.lineNumber, "", newWord, cursor.wordPosition));
+                    buffer.writeBufferToFile(fullPath);
+                    system("cls");
+                    break;
+                }
+                case 4:
+                    break;
+                default:
+                    cout << "Invalid choice. Please try again." << endl;
+                }   
             }
-            case 6: {  // Insert word at cursor
-                string word;
-                cout << "Enter the word to insert: ";
-                cin >> word;
-                int lineNum, wordPos;
-                cout << "Enter line number and word position: ";
-                cin >> lineNum >> wordPos;
-                Cursor cursor(lineNum - 1, wordPos);  // Adjusting line number for 0-based index
-                insertWordAtCursor(buffer, cursor, word);
-                undoRedo.recordOperation(Operation(INSERT_WORD, lineNum - 1, "", word, wordPos));  // Record operation
-                break;
+            else
+            {
+                cout << "Word not found." << endl;
             }
-            case 7: {  // Delete word at cursor
-                string word;
-                cout << "Enter the word to delete: ";
-                cin >> word;
-                int lineNum, wordPos;
-                cout << "Enter line number and word position: ";
-                cin >> lineNum >> wordPos;
-                Cursor cursor(lineNum - 1, wordPos);  // Adjusting line number for 0-based index
-                replaceWordAtCursor(buffer, cursor, "", word);
-                undoRedo.recordOperation(Operation(DELETE_WORD, lineNum - 1, word, "", wordPos));  // Record operation
-                break;
-            }
-            case 8:
-                undoRedo.performUndo(buffer);
-                break;
-            case 9:
-                undoRedo.performRedo(buffer);
-                break;
-            case 10:
-                buffer.writeBufferToFile(fullPath);
-                return;
-            default:
-                cout << "Invalid choice. Please try again." << endl;
+            break;
+        }
+        case 8:
+            undoRedo.performUndo(buffer);
+            buffer.writeBufferToFile(fullPath);
+            system("cls");
+            buffer.printLines();
+            break;
+        case 9:
+            undoRedo.performRedo(buffer);
+            buffer.writeBufferToFile(fullPath);
+            system("cls");
+            buffer.printLines();
+            break;
+        case 10:
+            buffer.writeBufferToFile(fullPath);
+            return;
+        default:
+            system("cls");
+            cout << "Invalid choice. Please try again." << endl;
         }
     }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
     LineBuffer buffer;
     UndoRedo undoRedo;
 
-    string filename = "file.txt";  // Default filename
+    string filename = "file.txt";
     string directory = "";
-    string fullPath = filename;
-
-    if (argc == 2) {
+   
+    if (argc == 2)
+    {
         filename = argv[1];
-    } else if (argc == 3) {
+    }
+    else if (argc == 3)
+    {
         filename = argv[1];
         directory = argv[2];
     }
-
-    if (!directory.empty()) {
+    // cout << "Filename: " << filename << endl;
+    string fullPath = filename;
+    if (!directory.empty())
+    {
         fullPath = directory + "/" + filename;
     }
 
+    // cout << "Full path: " << fullPath << endl;
+
     string mode = fileExists(fullPath) ? "r+" : "w+";
+    // cout << "Opening file in mode: " << mode << endl;
 
-    createOrOpenFile(fullPath, mode);
+    createOrOpenFile(fullPath);
 
-    if (mode == "r+" && readFileToBuffer(fullPath, buffer)) {
+    if (mode == "r+" && readFileToBuffer(fullPath, buffer))
+    {
         cout << "File content loaded into the buffer:" << endl;
         buffer.printLines();
     }
-
     handleOperations(buffer, fullPath, undoRedo);
 
     return 0;

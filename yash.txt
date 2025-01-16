@@ -1,0 +1,25 @@
+void writeBufferToFile(const string &fullPath) const {
+    ofstream file(fullPath, ios::out | ios::trunc);
+
+    if (!file.is_open()) {
+        cerr << "Error: Could not open the file for writing." << endl;
+        return;
+    }
+
+    ListNode *temp = head;
+    while (temp) {
+        WordNode *wordTemp = temp->wordHead;
+        while (wordTemp) {
+            file << wordTemp->word;
+            if (wordTemp->next) {
+                file << " ";  // Add a space between words
+            }
+            wordTemp = wordTemp->next;
+        }
+        file << endl;  // End of line after all words are written
+        temp = temp->next;
+    }
+
+    file.close();
+    cout << "Changes saved to '" << fullPath << "' successfully." << endl;
+}
