@@ -25,15 +25,15 @@ This project is a line editor developed in C that allows you to open, read, modi
    If you are using Git, clone the repository:
 
    ```bash
-   git clone <repository_url>
-   cd <repository_folder>
+   git clone https://github.com/Mr-Yash-beldar/Line-Editor.git
+   cd Line-Editor
    ```
 
 2. **Compile the Program**
    Use the following command to compile the program:
 
    ```bash
-   gcc -o lineeditor line_editor.c
+   gcc -o lineeditor line_editor.cpp
    ```
 
 3. **Run the Program**
@@ -43,31 +43,31 @@ This project is a line editor developed in C that allows you to open, read, modi
    ### Command Line Syntax:
    **without Argument** (Creates or Read file.txt by default):
    ```bash
-   ./lineeditor
+   ./line_editor
    ```
 
    ### Example Usage:
 
-   - **One Argument** (Create a new file in the current directory):
+   - **One Argument** (Create a new file in the current directory or read it if present already):
      ```bash
-     ./lineeditor file.txt
+     ./line_editor testfile.txt
      ```
 
-     This will create a new file called `file.txt` in the current directory or open it if it already exists.
+     This will create a new file called `testfile.txt` in the current directory or open it if it already exists.
 
    - **Two Arguments** (Open an existing file or create a new file in the current directory):
      ```bash
-     ./lineeditor yash.txt
+     ./line_editor yash.txt
      ```
 
    - **Three Arguments** (Open an existing file or create a new file in a specific directory):
      ```bash
-     ./lineeditor yashodip.txt foldername
+     ./line_editor yashodip.txt foldername
      ```
 
    - **More than 3 Arguments** (Error handling):
      ```bash
-     Error: Too many arguments. Usage: ./lineeditor <filename> [directory]
+     Error: Too many arguments. Usage: ./line_editor <filename> [directory] 
      ```
 
 4. **Command Line Operations**:
