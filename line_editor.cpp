@@ -202,23 +202,25 @@ public:
     }
 
     void printLines() const
+{
+    ListNode *temp = head;
+    int lineNum = 1;
+    while (temp)
     {
-        ListNode *temp = head;
-        int lineNum = 1;
-        while (temp)
+        string line = "";
+        WordNode *wordTemp = temp->wordHead;
+        while (wordTemp)
         {
-            string line="";
-            WordNode *wordTemp=temp->wordHead;
-            while(wordTemp){
-                line=line+wordTemp->word;
-                if(wordTemp->next) line+" ";
-                wordTemp=wordTemp->next;
-            }
-            cout << "[Line No" << lineNum << "]: " << line << endl;
-            temp = temp->next;
-            lineNum++;
+            line += wordTemp->word;
+            if (wordTemp->next) line += " ";  // Add a space between words
+            wordTemp = wordTemp->next;
         }
+        cout << "[Line No" << lineNum << "]: " << line << endl;
+        temp = temp->next;
+        lineNum++;
     }
+}
+
 string getLine(int position) const {
     if (position < 0 || position >= lineCount) {
         return "";
