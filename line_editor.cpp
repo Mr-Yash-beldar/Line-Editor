@@ -221,7 +221,7 @@ public:
             {
                 line += wordTemp->word;
                 if (wordTemp->next)
-                    line += " "; // Add a space between words
+                    line += " "; 
                 wordTemp = wordTemp->next;
             }
             cout << "[Line No" << lineNum << "]: " << line << endl;
@@ -243,19 +243,19 @@ public:
             temp = temp->next;
         }
 
-        ostringstream oss;
+        string line;
         WordNode *wordTemp = temp->wordHead;
         while (wordTemp)
         {
-            oss << wordTemp->word;
+            line+= wordTemp->word;
             if (wordTemp->next)
             {
-                oss << " "; // Add a space between words
+                line+= " "; 
             }
             wordTemp = wordTemp->next;
         }
 
-        return oss.str(); // Return the concatenated string
+        return line; 
     }
 
     void clear()
@@ -399,7 +399,7 @@ void insertWordAtCursor(LineBuffer &buffer, const Cursor &cursor, const string &
         pos++;
     }
 
-    // Insert new word node
+    
     WordNode *newWordNode = new WordNode(newWord);
     if (prev)
     {
@@ -440,7 +440,7 @@ void replaceWordAtCursor(LineBuffer &buffer, const Cursor &cursor, const string 
 
     if (wordTemp && wordTemp->word == oldWord)
     {
-        wordTemp->word = newWord; // Replace the old word with the new word
+        wordTemp->word = newWord; 
         cout << "Word replaced successfully." << endl;
     }
     else
@@ -745,7 +745,7 @@ int main(int argc, char *argv[])
     // cout << "Full path: " << fullPath << endl;
 
     string mode = fileExists(fullPath) ? "r+" : "w+";
-    // cout << "Opening file in mode: " << mode << endl;
+    // // cout << "Opening file in mode: " << mode << endl;
 
     createOrOpenFile(fullPath);
 
